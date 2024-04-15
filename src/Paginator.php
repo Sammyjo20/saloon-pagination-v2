@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Saloon\PaginationPlugin;
 
-use Iterator;
 use Countable;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Support\LazyCollection;
+use InvalidArgumentException;
+use Iterator;
+use Saloon\Helpers\Helpers;
+use Saloon\Http\Connector;
 use Saloon\Http\Request;
 use Saloon\Http\Response;
-use Saloon\Http\Connector;
-use Saloon\Helpers\Helpers;
-use InvalidArgumentException;
-use Illuminate\Support\LazyCollection;
-use GuzzleHttp\Promise\PromiseInterface;
-use Saloon\PaginationPlugin\Contracts\Paginatable;
-use Saloon\PaginationPlugin\Traits\HasAsyncPagination;
-use Saloon\PaginationPlugin\Exceptions\PaginationException;
 use Saloon\PaginationPlugin\Contracts\MapPaginatedResponseItems;
+use Saloon\PaginationPlugin\Contracts\Paginatable;
+use Saloon\PaginationPlugin\Exceptions\PaginationException;
+use Saloon\PaginationPlugin\Traits\HasAsyncPagination;
 
 abstract class Paginator implements Iterator, Countable
 {
@@ -266,6 +266,34 @@ abstract class Paginator implements Iterator, Countable
     {
         return LazyCollection::make(function () use ($throughItems): iterable {
             return $throughItems ? yield from $this->items() : yield from $this;
+        });
+    }
+
+    public function dtos(): iterable
+    {
+        if ($this->isAsyncPaginationEnabled()) {
+            foreach ($this as $promise) {
+                yield $promise;
+            }
+
+            return;
+        }
+
+        /** @var Response $response */
+        foreach ($this as $response) {
+            $request = $response->getRequest();
+            $dtos = $request->createDtoFromResponse($response);
+
+            foreach ($dtos as $dto) {
+                yield $dto;
+            }
+        }
+    }
+
+    public function collectDtos(): LazyCollection
+    {
+        return LazyCollection::make(function () {
+            return yield from $this->dtos();
         });
     }
 
