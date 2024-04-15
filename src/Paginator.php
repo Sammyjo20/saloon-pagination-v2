@@ -9,10 +9,12 @@ use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Support\LazyCollection;
 use InvalidArgumentException;
 use Iterator;
+use RuntimeException;
 use Saloon\Helpers\Helpers;
 use Saloon\Http\Connector;
 use Saloon\Http\Request;
 use Saloon\Http\Response;
+use Saloon\PaginationPlugin\Contracts\CreatesDtosFromPaginatedResponseItems;
 use Saloon\PaginationPlugin\Contracts\MapPaginatedResponseItems;
 use Saloon\PaginationPlugin\Contracts\Paginatable;
 use Saloon\PaginationPlugin\Exceptions\PaginationException;
@@ -269,32 +271,30 @@ abstract class Paginator implements Iterator, Countable
         });
     }
 
+    /**
+     * Create DTOs from the paginated response items
+     *
+     * @return iterable<array-key, object>
+     */
     public function dtos(): iterable
     {
-        if ($this->isAsyncPaginationEnabled()) {
-            foreach ($this as $promise) {
-                yield $promise;
-            }
-
-            return;
+        if (! $this->request instanceof CreatesDtosFromPaginatedResponseItems) {
+            throw new RuntimeException('The request must implement the `' . CreatesDtosFromPaginatedResponseItems::class . '` interface to be used on paginators.');
         }
 
-        /** @var Response $response */
-        foreach ($this as $response) {
-            $request = $response->getRequest();
-            $dtos = $request->createDtoFromResponse($response);
-
-            foreach ($dtos as $dto) {
-                yield $dto;
-            }
+        foreach ($this->items() as $item) {
+            yield $this->request->createDtoFromPaginatedResponseItem($item);
         }
     }
 
+    /**
+     * Create a collection from the DTOs
+     *
+     * @return LazyCollection<array-key, object>
+     */
     public function collectDtos(): LazyCollection
     {
-        return LazyCollection::make(function () {
-            return yield from $this->dtos();
-        });
+        return LazyCollection::make(fn () => yield from $this->dtos());
     }
 
     /**

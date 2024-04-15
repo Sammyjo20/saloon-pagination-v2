@@ -6,11 +6,11 @@ namespace Saloon\PaginationPlugin\Tests\Fixtures\Requests;
 
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
-use Saloon\Http\Response;
+use Saloon\PaginationPlugin\Contracts\CreatesDtosFromPaginatedResponseItems;
 use Saloon\PaginationPlugin\Contracts\Paginatable;
 use Saloon\PaginationPlugin\Tests\Fixtures\Data\Superhero;
 
-class DtoPagedRequest extends Request implements Paginatable
+class DtoPagedRequest extends Request implements Paginatable, CreatesDtosFromPaginatedResponseItems
 {
     protected Method $method = Method::GET;
 
@@ -22,19 +22,15 @@ class DtoPagedRequest extends Request implements Paginatable
         return '/superheroes/per-page';
     }
 
-    public function createDtoFromResponse(Response $response): mixed
+    public function createDtoFromPaginatedResponseItem(array $items): object
     {
-        $items = $response->json()['data'];
-
-        return array_map(function ($item) {
-            return new Superhero(
-                id: $item['id'],
-                superhero: $item['superhero'],
-                publisher: $item['publisher'],
-                alter_ego: $item['alter_ego'],
-                first_appearance: $item['first_appearance'],
-                characters: $item['characters'],
-            );
-        }, $items);
+        return new Superhero(
+            id: $items['id'],
+            superhero: $items['superhero'],
+            publisher: $items['publisher'],
+            alter_ego: $items['alter_ego'],
+            first_appearance: $items['first_appearance'],
+            characters: $items['characters'],
+        );
     }
 }
