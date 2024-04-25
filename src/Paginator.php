@@ -9,7 +9,7 @@ use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Support\LazyCollection;
 use InvalidArgumentException;
 use Iterator;
-use RuntimeException;
+use LogicException;
 use Saloon\Helpers\Helpers;
 use Saloon\Http\Connector;
 use Saloon\Http\Request;
@@ -279,7 +279,7 @@ abstract class Paginator implements Iterator, Countable
     public function dtos(): iterable
     {
         if (! $this->request instanceof CreatesDtosFromPaginatedResponseItems) {
-            throw new RuntimeException('The request must implement the `' . CreatesDtosFromPaginatedResponseItems::class . '` interface to be used on paginators.');
+            throw new LogicException('The request must implement the ' . CreatesDtosFromPaginatedResponseItems::class . ' interface to be used on paginators.');
         }
 
         foreach ($this->items() as $item) {
