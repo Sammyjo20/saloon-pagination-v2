@@ -18,7 +18,7 @@ abstract class PagedPaginator extends Paginator
      */
     protected function applyPagination(Request $request): Request
     {
-        $request->query()->add('page', $this->page);
+        $request->query()->add('page', $this->currentPage);
 
         if (isset($this->perPageLimit)) {
             $request->query()->add('per_page', $this->perPageLimit);
